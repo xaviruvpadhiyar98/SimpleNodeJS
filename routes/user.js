@@ -1,21 +1,29 @@
 //db setup
 const db = require("./db");
+const bcrypt = require('bcrypt')
 const dbName = "users";
 const collectionName = "users";
 
 //signup method
-exports.signup = function(req, res){
+exports.signup =  async function(req, res) {
     message = '';
     if(req.method == "POST"){
         var post  = req.body;
         var name= post.user_name;
-        var pass= post.password;
+      //   var pass= post.password;
         var fname= post.first_name;
         var lname= post.last_name;
         var mob= post.mob_no;
         var college= post.college;
-        var doc = {"username":name , "password":pass,"fname":fname , "lname":lname , "mobile":mob , "collegeName":college}
 
+      try{
+         const salt = await bcrypt.genSalt()
+         const hashedPassword = await bcrypt.hash(post.password , salt)
+        var doc = {"username":name , "password":hashedPassword,"fname":fname , "lname":lname , "mobile":mob , "collegeName":college}
+      }catch{
+         message = "Account Creation Failed! Try again after sometime";
+         res.render('signup.ejs',{message: message});
+      }
         db.initialize(dbName, collectionName, function (dbCollection) {
             dbCollection.insertOne(doc, function (err, result) {
                 if (err) throw err;
@@ -26,34 +34,45 @@ exports.signup = function(req, res){
         });
     }
     else{
-       res.render('signup');
+   
+         res.render('signup.ejs');
     }
  };
 
 
 
 
-
  //login method
- exports.login = function(req, res){
+ exports.login = async function(req, res){
     var message = '';
     if(req.method == "POST"){
-       var post  = req.body;
-       var user_name= post.user_name;
-       var pass= post.password;
-      var doc = {"username": user_name , "password": pass}
+      var post  = req.body;
+      var user_name= post.user_name;
+      var pass= post.password;
+
+
+
+      var doc = {"username": user_name}
       db.initialize(dbName, collectionName, function (dbCollection) { // successCallback 
          dbCollection.find(doc).toArray(function (err, result) {
             if (err) throw err;
-            console.log(result);
-            //console.log(result[0]);
-            //console.log("Username: " + result[0]['username'] + " " + "Password: " + result[0]['password'] );
             if(result[0]){
+               const u = result[0]['username']
+               const p = result[0]['password']
                if(result[0]['username']){
                if(result[0]['password']){
-                  if (user_name == result[0]['username'] && pass == result[0]['password']){      
-                     res.redirect('/home/dashboard');
-                  }}}}
+                     if (user_name == result[0]['username']){
+                        try{
+                        if (bcrypt.compareSync(pass , p )){
+                           var user = user_name
+                           res.render('profile.ejs', {user:user_name});
+                        }
+                     }catch{
+                        message = 'Wrong Credentials.';
+                        res.render('index.ejs',{message: message});
+                     }
+                  }
+                  }}}
           else{
              message = 'Wrong Credentials.';
              res.render('index.ejs',{message: message});
@@ -66,12 +85,3 @@ exports.signup = function(req, res){
     }         
  };
 
-
-
-
-
- //dashboard
- exports.dashboard = function(req, res, next){
-   var user = ''
-	res.render('profile.ejs', {user:user});		  
-};
