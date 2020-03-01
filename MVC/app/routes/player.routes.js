@@ -23,6 +23,11 @@ module.exports = app => {
   // Retrieve all leaderBoard with Subject
   app.get("/leaderBoard/:subject", leaderBoard.findLeaderBoardSubject);
 
+  // Retrieve all leaderBoard with Subject
+  app.get("/leaderBoard/", leaderBoard.findLeaderBoardAll);
+
+  // Update a Player with playerId
+  app.put("/leaderBoard/:playerId", leaderBoard.addScore);
 
 
 };

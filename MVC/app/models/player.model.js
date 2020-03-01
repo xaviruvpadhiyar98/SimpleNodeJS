@@ -1,7 +1,7 @@
 const sql = require("./db.js");
 
 // constructor
-const Player = (player)=>{
+const Player = function(player){
   this.name = player.name;
   this.subject = player.subject;
   this.score = player.score;
@@ -108,8 +108,6 @@ Player.removeAll = result => {
   });
 };
 
-module.exports = Player;
-
 
 Player.findBySubject = (playerSubject, result) => {
   sql.query('select  @rank:=@rank + 1 as rank, name , score from leaderDummy,(select @rank:=0) as r where subject =  ? order by score desc, time',[playerSubject], (err, res) => {
@@ -129,3 +127,61 @@ Player.findBySubject = (playerSubject, result) => {
     result({ kind: "not_found" }, null);
   });
 };
+
+Player.getAllLeaderBoard = result => {
+  sql.query("select  @rank:=@rank + 1 as rank, name , score from leaderDummy,(select @rank:=0) as r order by score desc, time", (err, res) => {
+    if (err) {
+      console.log("error: ", err);
+      result(null, err);
+      return;
+    }
+
+    console.log("players: ", res);
+    result(null, res);
+  });
+};
+
+Player.AddScoreById = (id, player, result) => {
+  sql.query(
+    "select * from leaderDummy where id = ?",
+    [id],
+    (err, res) => {
+      if (err) {
+        console.log("error: ", err);
+        result(null, err);
+        return;
+      }
+
+      if (res.affectedRows == 0) {
+        // not found Player with the id
+        result({ kind: "not_found" }, null);
+        return;
+      }
+
+      console.log("selected player: ", { id: id, ...player });
+      var row = JSON.parse(JSON.stringify(res))
+      console.log(row[0].score , player.score)
+      player.score = row[0].score + player.score
+      sql.query('UPDATE leaderDummy SET score = ? WHERE id = ?',
+        [player.score , id ],
+         (err, res)=> {
+          if (err) {
+            console.log("error: ", err);
+            result(null, err);
+            return;
+          }
+          if (res.affectedRows == 0) {
+            // not found Player with the id
+            result({ kind: "not_found" }, null);
+            return;
+          }
+
+      result(null, { id: id, ...player });
+
+    }
+  );
+});
+}
+
+
+module.exports = Player;
