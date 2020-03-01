@@ -1,0 +1,6 @@
+PUT http://localhost:3000/customers/5000
+Content-Type: application/json
+
+{
+    "score":2000
+}
